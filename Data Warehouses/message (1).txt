@@ -1,0 +1,234 @@
+----------------------------- Loan Fact
+------------
+------------
+--------------
+
+CREATE TABLE Loan_Dimention (
+    loan_id INT PRIMARY KEY NOT NULL,
+    amount FLOAT, -- amount of the loan
+    payment FLOAT, -- monthly
+    duration INT, -- written in months
+    status VARCHAR(1),
+    status_description VARCHAR(250)
+);
+
+CREATE TABLE Loan_Snapshot_Fact (
+client_id int not null,
+    district_id INT NOT NULL,
+    loan_id INT NOT NULL,
+    account_id INT NOT NULL,
+    snapshot_date_id INT NOT NULL,
+    snapshot_time_id INT NOT NULL,
+FOREIGN KEY (client_id) REFERENCES Client_Dimention(client_id),
+    FOREIGN KEY (snapshot_date_id) REFERENCES Date_Dimention(date_id),
+    FOREIGN KEY (snapshot_time_id) REFERENCES Time_Dimention(time_id),
+    FOREIGN KEY (account_id) REFERENCES Account_Dimention(account_id),
+    FOREIGN KEY (loan_id) REFERENCES Loan_Dimention(loan_id),
+    FOREIGN KEY (district_id) REFERENCES District_Dimention(district_id),
+    paid_amount FLOAT, -- sum of returned amount for loan
+	remaining_amount FLOAT -- amount left to return
+);
+
+-------------- Permanent_order_fact
+---------
+-----------
+------------
+----------
+
+CREATE TABLE Permanent_Order_Dimention (
+    permanent_order_id INT PRIMARY KEY NOT NULL,
+    payment_type VARCHAR(25) -- K_symbol - "POJISTNE" stands for insurrance payment
+                                        -- "SIPO" stands for household
+                                        -- "LEASING" stands for leasing
+                                        -- "UVER" stands for loan payment
+);
+
+CREATE TABLE Bank_Dimention(
+    bank_id   INT PRIMARY KEY NOT NULL,
+    bank_code VARCHAR(2)
+);
+
+CREATE TABLE Permanent_Order_Fact (
+    client_id int not null,
+    permanent_order_id INT NOT NULL,
+    district_id INT NOT NULL,
+    bank_id INT NOT NULL,
+    account_to INT NOT NULL,
+    account_from int not null,
+    date_id INT NOT NULL,
+    time_id INT NOT NULL,
+    paid_amount FLOAT,
+    foreign key  (client_id) references Client_Dimention(client_id),
+    FOREIGN KEY (permanent_order_id) REFERENCES Permanent_Order_Dimention(permanent_order_id),
+    FOREIGN KEY (date_id) REFERENCES Date_Dimention(date_id),
+    FOREIGN KEY (time_id) REFERENCES Time_Dimention(time_id),
+    FOREIGN KEY (account_to) REFERENCES Account_Dimention(account_id),
+    foreign key  (account_from) references  Account_Dimention(account_id),
+    FOREIGN KEY (bank_id) REFERENCES Bank_Dimention(bank_id),
+    FOREIGN KEY (district_id) REFERENCES District_Dimention(district_id),
+);
+
+
+---------------------------------------- Transaction
+--------------------------------
+----------------------------
+---------------------------
+-----------------------------
+
+CREATE TABLE Transaction_Fact (
+    district_id INT NOT NULL,
+    client_from int not null,
+    client_to int not null,
+    account_from INT NOT NULL,
+    account_to INT NOT NULL,
+    date_id INT NOT NULL,
+    time_id INT NOT NULL,
+    transaction_id INT NOT NULL,
+    paid_amount FLOAT, -- amount of transaction
+	balance DECIMAL(10,2), -- balance after transaction
+    FOREIGN KEY (client_from) REFERENCES Client_Dimention(client_id),
+    FOREIGN KEY (client_to) REFERENCES Client_Dimention(client_id),
+    FOREIGN KEY (date_id) REFERENCES Date_Dimention(date_id),
+    FOREIGN KEY (time_id) REFERENCES Time_Dimention(time_id),
+    FOREIGN KEY (account_from) REFERENCES Account_Dimention(account_id),
+    FOREIGN KEY (account_to) REFERENCES Account_Dimention(account_id),
+    FOREIGN KEY (transaction_id) REFERENCES Transaction_Dimention(transaction_id),
+    FOREIGN KEY (district_id) REFERENCES District_Dimention(district_id),
+);
+
+-------------------------- Disposition
+------------------------
+----------------------------
+-------------------------
+-------------------------
+-----------------------
+
+CREATE TABLE Disposition_Fact ( -- periodic monthly snapshot
+    district_id INT NOT NULL,
+    client_id int not null,
+    account_id INT NOT NULL,
+    date_id INT NOT NULL,
+    time_id INT NOT NULL,
+    disposition_id INT NOT NULL,
+    FOREIGN KEY (disposition_id) references Disposition_DIMENTION(disposition_id),
+    FOREIGN KEY (client_id) REFERENCES Client_Dimention(client_id),
+    FOREIGN KEY (date_id) REFERENCES Date_Dimention(date_id),
+    FOREIGN KEY (time_id) REFERENCES Time_Dimention(time_id),
+    FOREIGN KEY (account_id) REFERENCES Account_Dimention(account_id),
+    FOREIGN KEY (district_id) REFERENCES District_Dimention(district_id),
+);
+
+-------------------Credit card
+---------------
+-----------------
+----------------------
+---------------------
+
+CREATE TABLE Credit_Card_Fact ( -- periodic monthly snapshot
+    district_id INT NOT NULL,
+    client_id int not null,
+    account_id INT NOT NULL,
+    card_issued_date_id INT NOT NULL,
+    card_issued_time_id INT NOT NULL,
+    disposition_id INT NOT NULL,
+    credit_card_id INT NOT NULL,
+    FOREIGN KEY (disposition_id) references Disposition_DIMENTION(disposition_id),
+    FOREIGN KEY (credit_card_id) references Credit_Card_DIMENTION(credit_card_id),
+    FOREIGN KEY (client_id) REFERENCES Client_Dimention(client_id),
+    FOREIGN KEY (card_issued_date_id) REFERENCES Date_Dimention(date_id),
+    FOREIGN KEY (card_issued_time_id) REFERENCES Time_Dimention(time_id),
+    FOREIGN KEY (account_id) REFERENCES Account_Dimention(account_id),
+    FOREIGN KEY (district_id) REFERENCES District_Dimention(district_id),
+);
+
+------------- district fact
+-------------
+------------
+CREATE TABLE Static_Demographic_Data (
+   demographic_data_id INT PRIMARY KEY Not NULL ,
+    district_name VARCHAR(255),
+    region VARCHAR(255),
+    municipalities_lt_499 INT,
+    municipalities_500_1999 INT,
+    municipalities_2000_9999 INT,
+    municipalities_gt_10000 INT,
+    unemployment_rate_95 DECIMAL(5,2),
+    unemployment_rate_96 DECIMAL(5,2),
+    crimes_95 INT,
+    crimes_96 INT,
+);
+
+CREATE TABLE District_Fact (
+   demographic_data_id INT NOT NULL,
+   date_id INT NOT NULL,
+   FOREIGN KEY (date_id) REFERENCES Date_Dimention(date_id),
+   FOREIGN KEY (demographic_data_id) REFERENCES Static_Demographic_Data(demographic_data_id),
+);
+
+----------- reusable
+----------
+-------
+CREATE TABLE Date_Dimention (
+    date_id INT PRIMARY KEY NOT NULL,
+    year_num INT,
+    half INT,
+    quarter INT,
+    month_num INT,
+    week INT,
+    day_num INT
+);
+
+CREATE TABLE Time_Dimention (
+    time_id INT PRIMARY KEY NOT NULL,
+    half INT,
+    quarter INT,
+    hour_num INT,
+    minute_num INT
+);
+
+CREATE TABLE Disposition_Dimention(
+    disposition_id INT PRIMARY KEY NOT NULL,
+    disposition_type VARCHAR(20) -- owner/user
+);
+
+CREATE TABLE Credit_Card_Dimention
+(
+    credit_card_id INT PRIMARY KEY NOT NULL,
+    card_type VARCHAR(20) -- junior, classic or gold
+);
+
+create  table Client_Dimention(
+    client_id int primary key not null,
+    birth_year int not null,
+    birth_month int not null,
+    birth_day int not null
+);
+
+CREATE TABLE Account_Dimention (
+    account_id INT PRIMARY KEY NOT NULL,
+    creationYear INT,
+    creationMonth INT,
+    creationDay INT,
+    frequency VARCHAR(20)
+);
+
+CREATE TABLE District_Dimention(
+    district_id INT PRIMARY KEY Not NULL ,
+    district_name VARCHAR(255),
+    region VARCHAR(255),
+    inhabitants INT,
+    cities INT,
+    urban_inhabitants_ratio DECIMAL(5,2),
+    average_salary DECIMAL(10,2),
+    entrepreneurs_per_1000 INT
+);
+
+CREATE TABLE Transaction_Dimention (
+    transaction_id INT PRIMARY KEY NOT NULL ,
+    transaction_type VARCHAR(5), -- credit/withdraw
+    operation VARCHAR(20),
+    transaction_intent VARCHAR(20), -- k_symbol in source. The purpose of the transaction
+    intent_description VARCHAR(255), -- loan payment, household, insurance payment ...
+    bank VARCHAR(2), -- unique two-letter code
+    bank_full_name VARCHAR(255), -- description of the two-letter code (Full name of the bank)
+);
